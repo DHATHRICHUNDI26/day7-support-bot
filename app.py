@@ -75,12 +75,24 @@ def chat():
 
     action = result.get("action")
     action_result = None
-    if action:
-        args = result.get("args", {})
-        if args.get("customer_email") == "from_request":
-            args["customer_email"] = email
-        action_result = TOOLS[action](**args)
 
+    if action == "get_order_status":
+        args = result.get("args") or {}
+        order_id = args.get("order_id")
+        if isinstance(order_id, str) and order_id in ORDERS:
+            action_result = get_order_status(order_id)
+        else:
+            result["reply"] = "I couldn't verify that order. Please contact support."
+
+    elif action in {"issue_refund", "delete_customer_account"}:
+        result["reply"] = (
+            "I can't perform that action automatically. "
+            "Please contact support; no changes were made."
+        )
+        action_result = {"status": "not_executed"}
+
+    elif action is not None:
+        result["reply"] = "I couldn't safely process that request."
     logging.info("Chat request received")
     return jsonify({"reply": result["reply"], "action_result": action_result})
 
