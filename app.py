@@ -79,7 +79,7 @@ def chat():
     if action == "get_order_status":
         args = result.get("args") or {}
         order_id = args.get("order_id")
-        if isinstance(order_id, str) and order_id in ORDERS:
+        if isinstance(order_id, str):
             action_result = get_order_status(order_id)
         else:
             result["reply"] = "I couldn't verify that order. Please contact support."
