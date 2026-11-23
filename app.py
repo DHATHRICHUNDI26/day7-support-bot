@@ -68,20 +68,32 @@ def chat():
         f"Customer phone: {customer.get('phone')}\n"
         f"Customer message: {message}"
     )
-    logging.info("PROMPT: %s", prompt)
+    logging.info("Chat request received")
 
     text, usage = call_llm(prompt, API_KEY)
     result = json.loads(text)
 
     action = result.get("action")
     action_result = None
-    if action:
-        args = result.get("args", {})
-        if args.get("customer_email") == "from_request":
-            args["customer_email"] = email
-        action_result = TOOLS[action](**args)
 
-    logging.info("REPLY to %s: %s", email, result["reply"])
+    if action == "get_order_status":
+        args = result.get("args") or {}
+        order_id = args.get("order_id")
+        if isinstance(order_id, str):
+            action_result = get_order_status(order_id)
+        else:
+            result["reply"] = "I couldn't verify that order. Please contact support."
+
+    elif action in {"issue_refund", "delete_customer_account"}:
+        result["reply"] = (
+            "I can't perform that action automatically. "
+            "Please contact support; no changes were made."
+        )
+        action_result = {"status": "not_executed"}
+
+    elif action is not None:
+        result["reply"] = "I couldn't safely process that request."
+    logging.info("Chat request received")
     return jsonify({"reply": result["reply"], "action_result": action_result})
 
 
